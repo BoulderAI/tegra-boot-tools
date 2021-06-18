@@ -32,6 +32,7 @@ static struct option options[] = {
 	{ "slot-suffix",	required_argument,	0, 's' },
 	{ "dry-run",		no_argument,		0, 'n' },
 	{ "needs-repartition",	no_argument,		0, 'N' },
+	{ "ignore-ver-checks", no_argument,		0, 'v'}
 	{ "help",		no_argument,		0, 'h' },
 	{ "version",		no_argument,		0, 0   },
 	{ 0,			0,			0, 0   }
@@ -43,6 +44,7 @@ static char *optarghelp[] = {
 	"--slot-suffix        ",
 	"--dry-run            ",
 	"--needs-repartition  ",
+	"--ignore-ver-checks  ",
 	"--help               ",
 	"--version            ",
 };
@@ -52,6 +54,7 @@ static char *opthelp[] = {
 	"update only the redundant boot partitions with the specified suffix (with no SMD update)",
 	"do not perform any writes, just show what would be written",
 	"check if boot device needs repartitioning (T186/T194 only)",
+	"ignore checks for version partitions",
 	"display this help text",
 	"display version information"
 };
@@ -1020,6 +1023,7 @@ main (int argc, char * const argv[])
 	char pathname[PATH_MAX];
 	int initialize = 0;
 	bool dryrun = false;
+	bool ver_check = true;
 	int ret = 1;
 	int missing_count;
 	int curslot = -1;
@@ -1065,6 +1069,9 @@ main (int argc, char * const argv[])
 				break;
 			case 'N':
 				check_only = dryrun = true;
+				break;
+			case 'v':
+			    ver_check = false;
 				break;
 			case 0:
 				if (strcmp(options[which].name, "version") == 0) {
@@ -1412,8 +1419,9 @@ main (int argc, char * const argv[])
 
 	if (soctype == TEGRA_SOCTYPE_210) {
 		int bctctx = -1;
-		if (invalid_version_or_downgrade(bupctx, fd, gptfd, redundant_entries, redundant_entry_count, (initialize > 1)))
-			goto reset_and_depart;
+		if (ver_check)
+			if (invalid_version_or_downgrade(bupctx, fd, gptfd, redundant_entries, redundant_entry_count, (initialize > 1)))
+				goto reset_and_depart;
 		redundant_entry_count = order_entries_t210(redundant_entries, ordered_entries, redundant_entry_count);
 		if (redundant_entry_count == 0)
 			goto reset_and_depart;
